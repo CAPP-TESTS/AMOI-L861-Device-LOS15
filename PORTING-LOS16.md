@@ -89,10 +89,12 @@ share most of these patches already ported to Pie).
 3. **Shims** (`TARGET_LD_SHIM_LIBS` / `libmtk_symbols`): expect new unresolved
    symbols from P `libgui`/`libui`/`libstagefright`; extend the shim as
    runtime linker errors show up in logcat.
-4. **Audio policy**: `USE_XML_AUDIO_POLICY_CONF := 1` with the primary
-   `audio_policy_configuration.xml` coming from the vendor tree
-   (`vendor/etc/audio/`); verify P's config search path picks it up, else add
-   a copy to `/system/vendor/etc/`.
+4. **Audio policy**: RESOLVED in the Phase-3 vendor/device commits — Pie's
+   APM only searches `/odm/etc`, `/vendor/etc`, `/system/etc`, so the vendor
+   tree now installs the primary `audio_policy_configuration.xml` into
+   `system/vendor/etc/` and device.mk installs the XInclude fragments next
+   to it. Verify at runtime that the audio HAL module names in that XML
+   match what the MTK audio blob registers.
 5. **TARGET_SPECIFIC_HEADER_PATH**: verify still honored on 16.0 (see comment
    in BoardConfig.mk).
 6. **dhcpcd/wide-dhcpv6 configs**: still fine on P (external/dhcpcd-6.8 exists);
