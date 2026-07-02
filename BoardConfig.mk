@@ -113,8 +113,10 @@ BOARD_KERNEL_PAGESIZE := 2048
 
 	
 TARGET_KERNEL_SOURCE := kernel/openstone/L861
-TARGET_KERNEL_CONFIG := los15_defconfig
+TARGET_KERNEL_CONFIG := los16_defconfig
 
+# 3.10 does not build with clang; keep the default GCC 4.9 kernel build
+# (do NOT set TARGET_KERNEL_CLANG_COMPILE)
 TARGET_KERNEL_CROSS_COMPILE_PREFIX := aarch64-linux-android-
 
 #TARGET_KERNEL_CROSS_COMPILE_PREFIX :=/usr/src/android/gcc-linaro-4.9.4-2017.01-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
