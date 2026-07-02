@@ -17,12 +17,22 @@ PRODUCT_PROPERTY_OVERRIDES += \
     persist.force.gps.mode=gnss
 
 #Audio HIDL
+# Pie audio framework talks audio@4.0; the service binary is still named
+# android.hardware.audio@2.0-service and dlopens the 4.0 impl.
 PRODUCT_PACKAGES += \
-    android.hardware.audio@2.0-impl \
+    android.hardware.audio@4.0-impl \
     android.hardware.audio@2.0-service \
-    android.hardware.audio.effect@2.0-impl \
+    android.hardware.audio.effect@4.0-impl \
     android.hardware.broadcastradio@1.0-impl \
-    android.hardware.soundtrigger@2.0-impl
+    android.hardware.soundtrigger@2.1-impl
+
+# Configstore (Pie framework requires @1.1)
+PRODUCT_PACKAGES += \
+    android.hardware.configstore@1.1-service
+
+# Media CAS (new HIDL service used by the Pie media stack)
+PRODUCT_PACKAGES += \
+    android.hardware.cas@1.0-service
 
 
 # NFC HIDL
@@ -110,10 +120,9 @@ PRODUCT_PACKAGES += \
     android.hardware.drm@1.0-service.widevine \
     android.hardware.drm@1.0-service
 
-# Health
+# Health (health@1.0 is gone in Pie; healthd is replaced by health@2.0-service)
 PRODUCT_PACKAGES += \
-    android.hardware.health@1.0-impl \
-    android.hardware.health@1.0-service
+    android.hardware.health@2.0-service
 
 # Fingerprint
 # PRODUCT_PACKAGES += \

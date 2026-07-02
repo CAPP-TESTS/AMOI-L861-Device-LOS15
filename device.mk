@@ -1,3 +1,6 @@
+# Treble: legacy non-Treble device (no vendor partition, blobs in /system/vendor)
+PRODUCT_FULL_TREBLE_OVERRIDE := false
+
 # Dalvik heap configurations
 $(call inherit-product-if-exists, frameworks/native/build/phone-xxhdpi-3072-dalvik-heap.mk)
 
@@ -41,7 +44,9 @@ PRODUCT_PACKAGES += \
     isu.sh
 
 # Super User ROOT
-PRODUCT_PACKAGES += su
+# LineageOS 16.0 no longer ships su in the ROM; root is provided by the
+# separate addonsu zip (or Magisk). Build it in with: export WITH_SU=true
+#PRODUCT_PACKAGES += su
 
 #PRODUCT_PROPERTY_OVERRIDES += persist.sys.root_access=3
 
@@ -207,11 +212,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES := \
      persist.sys.timezone=Europe/Amsterdam
 
-# Torch
-PRODUCT_PACKAGES += \
-	Torch
-
-
 # Prebuilt Apps
 # PRODUCT_PACKAGES += \
 #        GFManager \
@@ -256,13 +256,11 @@ PRODUCT_PACKAGES += \
 	audio.a2dp.default \
 	audio.usb.default \
 	audio.r_submix.default \
-	audio_policy.default \
 	libaudio-resampler \
 	libaudiopolicymanagerdefault \
 	libtinyalsa \
 	libtinycompress \
 	libtinyxml \
-	audio_policy.stub \
 	libtinymix \
 	libfs_mgr \
 	tinymix \
@@ -387,6 +385,7 @@ PRODUCT_COPY_FILES += \
 	$(DEVICE_PATH)/configs/media/media_codecs_mediatek_video.xml:system/vendor/etc/media_codecs_mediatek_video.xml \
 	$(DEVICE_PATH)/configs/media/media_codecs_performance.xml:system/vendor/etc/media_codecs_performance.xml \
 	$(DEVICE_PATH)/configs/media/media_profiles.xml:system/vendor/etc/media_profiles.xml \
+	$(DEVICE_PATH)/configs/media/media_profiles.xml:system/vendor/etc/media_profiles_V1_0.xml \
 	$(DEVICE_PATH)/configs/mtk_clear_motion.cfg:system/etc/mtk_clear_motion.cfg
 
 PRODUCT_COPY_FILES += \

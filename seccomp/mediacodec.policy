@@ -24,3 +24,8 @@ getdents64: 1
 getcwd: 1
 inotify_init1: 1
 inotify_add_watch: 1
+# Pie (16.0): libc/ART call these on P; without them mediacodec gets
+# killed by seccomp on first codec instantiation
+getrandom: 1
+sched_yield: 1
+clock_getres: 1

@@ -10,3 +10,8 @@ nanosleep: 1
 readlinkat: 1
 pread64: 1
 mremap: 1
+# Pie (16.0): libc/ART call these on P; without them mediaextractor gets
+# killed by seccomp while probing files
+getrandom: 1
+sched_yield: 1
+clock_getres: 1

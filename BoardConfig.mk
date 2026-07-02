@@ -2,6 +2,9 @@
 
 DEVICE_PATH := device/openstone/L861
 
+# TODO(16.0): TARGET_SPECIFIC_HEADER_PATH is on its way out in newer build
+# systems; verify it is still honored on lineage-16.0 and if not, move the
+# headers into the modules that need them (header_libs / LOCAL_C_INCLUDES).
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
 TARGET_BOARD_KERNEL_HEADERS := $(DEVICE_PATH)/kernel-headers
 
@@ -103,6 +106,8 @@ TARGET_USES_64_BIT_BINDER := true
 TARGET_IS_64_BIT := true
 # androidboot.selinux=permissive androidboot.dm_verity=disabled androidboot.hardware=freescale
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 androidboot.selinux=enforcing
+# For early 16.0 bringup boots, use permissive instead:
+#BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 androidboot.selinux=permissive
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_KERNEL_PAGESIZE := 2048
 
@@ -463,8 +468,16 @@ BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
 #BOARD_SEPOLICY_VERS := 28.0
 
 # Treble
-PRODUCT_FULL_TREBLE := false
+# Non-Treble legacy device: no vendor partition, blobs live in /system/vendor.
+# PRODUCT_FULL_TREBLE is a product variable and is set to false via
+# PRODUCT_FULL_TREBLE_OVERRIDE in device.mk (setting it here has no effect).
+# Do NOT set BOARD_VNDK_VERSION on lineage-16.0: leaving it unset keeps the
+# legacy (non-VNDK) linker namespace configuration.
+BOARD_VNDK_RUNTIME_DISABLE := true
+TARGET_COPY_OUT_VENDOR := system/vendor
 
+# Uncomment for early 16.0 bringup if device sepolicy trips new Pie neverallows
+# (userdebug/eng only, remove again before any release build)
 #SELINUX_IGNORE_NEVERALLOWS := true
 
 # Deodex
