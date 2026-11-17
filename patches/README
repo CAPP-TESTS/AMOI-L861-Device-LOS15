@@ -1,5 +1,87 @@
-This is patch directory
+L861 patches for LineageOS 16.0 (Android 9)
+===========================================
 
-cd WORKING_DIR
-sh device/openstone/L861/patches/install.sh
-sh device/openstone/L861/patches/uninstall.sh
+Run from the root of the LineageOS 16.0 source tree:
+
+    sh device/openstone/L861/patches/check.sh      # dry run, changes nothing
+    sh device/openstone/L861/patches/install.sh    # core set
+    sh device/openstone/L861/patches/uninstall.sh  # git reset --hard + clean
+                                                   # in every patched project
+
+Optional sets are added by name:
+
+    sh device/openstone/L861/patches/install.sh video
+    sh device/openstone/L861/patches/install.sh video fmradio
+
+All three sets were applied in order, with these scripts, to the LineageOS
+lineage-16.0 branches of the patched projects. Nothing here has been
+compiled or booted yet.
+
+Core set (needed to build and boot)
+-----------------------------------
+Origin: "L861" = carried over unchanged from the 15.1 set of this tree,
+"hermes" = taken from the lineage-16.0 device tree of the Xiaomi Redmi Note 2
+(same MT6795 SoC, MTK Android M blobs).
+
+  bionic
+    0001 bionic-mtk-patch                         L861   export __pthread_gettid for the blobs
+  frameworks/av
+    0001 Disable-vndk-for-omx                     hermes
+    0002 mediatek-Port-AV-changes                 hermes MTK OMX decode/encode basics (ACodec)
+    0003 Disable-usage-of-get_capture_position    L861
+  frameworks/base
+    0001 Hardware-bitmaps-support-workaround      hermes
+    0002 zygote-Add-ged-to-whitelisted-paths      hermes /proc/ged fd inherited by zygote
+  frameworks/native
+    0001 Do-not-use-presentOrValidate             hermes HWC1 behind the HWC2-on-1 adapter
+    0002 Ignore-usage-bits-verification           hermes old gralloc usage bits
+  frameworks/opt/telephony
+    0001 add-mtk-ril-requests-unsol-responses     hermes same 50 lines as the 15.1 L861 patch
+  hardware/interfaces
+    0001 HWC2On1Adapter-Fix-fence-leak            hermes
+    0002 Workaround-for-MTK-camera-blobs          L861
+    0003 Lower-the-requirement-of-sensor-API...   L861
+  system/core
+    0001 liblog-Add-__xlog_buf_printf             L861
+    0002 libsuspend-readd-earlysuspend            hermes replaces the 15.1 early_suspend patch
+    0003 gatekeeperd-Add-use-software-gatekeeper  L861
+  system/netd
+    0001 Don-t-fail-on-FTP-conntracking-failing   hermes
+    0002 Accept-broken-rpfilter-match             hermes kernel has no IPv4 rpfilter match
+
+optional-video (enable after testing playback/recording on the device)
+----------------------------------------------------------------------
+  frameworks/av      YUV color profiles, HEVC enhancement, OMX decoder crop
+                     info, MTK media profiles (hermes)
+  frameworks/native  YUV color profiles header (goes with the av one)
+The L861 OMX blobs are different builds from the hermes ones, so these are
+not known to be needed, or correct, here.
+
+optional-fmradio
+----------------
+  packages/apps/FMRadio  Suppress-compiler-warnings (hermes)
+Note that both packages/apps/FMRadio and this tree's MTK_FM-RADIO define a
+module named libfmjni.
+
+Not carried over from 15.1 (kept under lineage-15.1/ for reference)
+-------------------------------------------------------------------
+  frameworks/av   libaudiohal LEGACY_MTK_AV_BLOB, libmedia MTK stubs: do not
+                  apply to 16.0; hermes runs the same class of audio blob with
+                  no audio patch. Re-port only if audio fails.
+  frameworks/av   AutoscaleOmx: 16.0 has TARGET_OMX_LEGACY_RESCALING natively.
+  hardware/interfaces  audio error-message suppression (2): do not apply.
+  hardware/ril    BOARD_PROVIDES_RILD: replaced by ENABLE_VENDOR_RIL_SERVICE
+                  in BoardConfig.mk.
+  system/core     early_suspend: replaced by the hermes one.
+  system/core     O-change-patch: its MTK ifc_* helpers now live in
+                  hal/libril/libnetutils.c; the init ENV[] enlargement is not
+                  carried over.
+  telephony       RIL.java: replaced by the hermes port.
+
+Deliberately not taken from hermes
+----------------------------------
+  frameworks/av MTK-camera-support: this tree provides the MTK camera
+  parameters through its own libcamera_client_mtk.
+  frameworks/base 0010: signature spoofing, unrelated to the port.
+  bionic (2): the hermes install script does not apply them either; one
+  does not apply to 16.0, the other reads a phh-specific property.

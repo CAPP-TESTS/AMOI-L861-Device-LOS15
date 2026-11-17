@@ -18,7 +18,8 @@ ril_src_files := \
     ril_event.cpp\
     RilSapSocket.cpp \
     ril_service.cpp \
-    sap_service.cpp
+    sap_service.cpp \
+    libnetutils.c
 
 ril_shared_libs := \
     liblog \

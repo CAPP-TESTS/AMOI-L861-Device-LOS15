@@ -1,19 +1,13 @@
-echo $1
-rootdirectory="$PWD"
-# ---------------------------------
-
-dirs="bionic frameworks/av frameworks/opt/telephony hardware/interfaces hardware/ril system/core"
-
-for dir in $dirs ; do
-	cd $rootdirectory
-	cd $dir
-	echo "Reverting $dir patches..."
-	#git apply --reverse $rootdirectory/device/openstone/L861/patches/$dir/*.patch
+#!/bin/sh
+# Revert every patched project to its checked-out state.
+# WARNING: this discards ALL local changes in those projects
+# (git reset --hard + git clean), not only these patches.
+. "$(dirname "$0")/common.sh"
+for dir in $core_dirs $fmradio_dirs; do
+	[ -d "$rootdirectory/$dir" ] || continue
+	cd "$rootdirectory/$dir" || exit 1
+	echo "Reverting $dir ..."
 	git reset --hard
 	git clean -f -d
-	echo " "
 done
-
-# -----------------------------------
-echo "Changing to build directory..."
-cd $rootdirectory
+cd "$rootdirectory" || exit 1

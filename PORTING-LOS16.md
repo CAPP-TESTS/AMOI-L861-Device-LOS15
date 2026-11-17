@@ -87,53 +87,49 @@ flag on `/cache` was dropped. An existing `/data` formatted to the full
 partition size has no room for the footer: encryption needs `/data` to be
 formatted once (TWRP already formats with `length=-16384`).
 
-## patches/ — status against the real lineage-16.0 sources
+## patches/ — the 16.0 set
 
-Checked with `git apply` against the LineageOS `lineage-16.0` branches of
-`frameworks/av`, `hardware/interfaces`, `system/core`, `bionic`,
-`frameworks/opt/telephony`, `frameworks/native`, `system/netd` and
-`hardware/ril`. Not checked: the `frameworks/base` and `packages/apps/FMRadio`
-patches (those projects are not cloned).
+`patches/` now holds the set for lineage-16.0; see `patches/README` for the
+full list with the origin of each patch. `install.sh`, `check.sh` and
+`uninstall.sh` were run against the LineageOS `lineage-16.0` branches of
+bionic, frameworks/av, frameworks/base, frameworks/native,
+frameworks/opt/telephony, hardware/interfaces, system/core, system/netd and
+packages/apps/FMRadio: all 17 core patches and the 6 optional ones apply in
+order, and uninstall restores the projects. Nothing has been compiled.
 
-### L861 15.1 patches
+- **Core (17):** 6 carried over unchanged from the 15.1 set (bionic
+  `__pthread_gettid`, `get_capture_position`, MTK camera workaround, sensor
+  API 1.0, xlog, software gatekeeper) and 11 from the hermes lineage-16.0
+  tree (OMX without VNDK, ACodec MTK basics, hardware bitmaps, `ged` in
+  zygote, `presentOrValidate`, gralloc usage bits, RIL.java, HWC2On1Adapter
+  fence leak, early suspend, two netd ones).
+- **optional-video (5)** and **optional-fmradio (1):** hermes patches to
+  enable by name once tested on the device.
+- **`patches/lineage-15.1/`:** the nine 15.1 patches not carried over, kept
+  for reference. Seven do not apply to 16.0; the audio ones are only worth
+  re-porting if audio fails (hermes needs none).
 
-| Patch | Applies to 16.0? | Plan |
-|---|---|---|
-| `frameworks/av/0001-libaudiohal-LEGACY_MTK_AV_BLOB-support.patch` | no (`libaudiohal/Android.mk` is gone) | re-port only if audio fails without it; hermes needs no audio patch at all |
-| `frameworks/av/0002-libmedia-add-MTK-null-functions.patch` | no | re-port, or move the stubs into `libmtk_symbols` |
-| `frameworks/av/0003-Disable-usage-of-get_capture_position.patch` | **yes** | keep |
-| `frameworks/av/0004-AutoscaleOmx.patch` | no | **drop**: 16.0 has `TARGET_OMX_LEGACY_RESCALING` natively (soong variable `Target_omx_legacy_rescaling`), already set in BoardConfig |
-| `hardware/interfaces/0001-Add-error-message-suppress-option.patch`, `0002-Build-flag-misplaced.patch` | no (`audio/2.0/default/Android.mk` is gone) | re-port only if the log spam matters |
-| `hardware/interfaces/0002-Workaround-for-MTK-camera-blobs.patch` | **yes** | keep |
-| `hardware/interfaces/0003-Lower-the-requirement-of-sensor-API-version-to-1.0.patch` | **yes** | keep |
-| `system/core/0001-liblog-Add-__xlog_buf_printf.patch` | **yes** | keep |
-| `system/core/0001-restore-support-for-early_suspend.patch` | no | replace with hermes `0001-libsuspend-readd-earlysuspend.patch` (applies) |
-| `system/core/0002-gatekeeperd-Add-use-software-gatekeeper-option.patch` | **yes** | keep |
-| `system/core/0003-O-change-patch.patch` | no | **not droppable**: besides enlarging init's `ENV[]` it adds the MTK `ifc_*` helpers to libnetutils that the MTK RIL uses. hermes carries `ifc_set_txq_state`/`ifc_ccmni_md_cfg` in `mtk/ril/libril/libnetutils.c` instead of patching system/core; do the same in `hal/libril`, or re-port the libnetutils part |
-| `bionic/0001-bionic-mtk-patch.patch` | **yes** | keep (exports `__pthread_gettid` with the versions the blobs expect) |
-| `frameworks/opt/telephony/0001-RIL.java-…` | no (`RIL.java:4761`) | replace with hermes `0001-add-mtk-ril-requests-unsol-responses.patch`: same 50 added lines, and it applies |
-| `hardware/ril/0001-BOARD_PROVIDES_RILD.patch` | no | **drop**: 16.0 switches the platform rild off with `ENABLE_VENDOR_RIL_SERVICE` and libril with `BOARD_PROVIDES_LIBRIL`; both are now set in BoardConfig |
+Replaced rather than re-ported:
+- `system/core/0003-O-change-patch`: the two MTK helpers the RIL blobs
+  import (`ifc_set_txq_state`, `ifc_ccmni_md_cfg` — the only non-standard
+  `ifc_*` symbols any L861 blob needs) are now built into `hal/libril`
+  (`libnetutils.c`, as hermes does). `ifc_set_throttle` is only called from
+  `hal/bwc` under `FLAG_SUPPORT_MODEM_SCALE`, which is not defined. The
+  `ENV[]` enlargement has no target any more: Pie init has no fixed-size
+  environment array.
+- `hardware/ril/0001-BOARD_PROVIDES_RILD`: `ENABLE_VENDOR_RIL_SERVICE` in
+  BoardConfig.
 
-### hermes lineage-16.0 patches
+Not taken from hermes: its camera patch (this tree uses the device library
+`libcamera_client_mtk`), the signature-spoofing patch, and its two bionic
+patches (its own install script does not apply them; one does not apply to
+16.0 because LineageOS bionic already has that behavior, the other reads a
+phh-specific property).
 
-All seven `frameworks/av` patches apply, also in sequence, and the six
-non-camera ones apply without `0003-MTK-camera-support`. Also applying: the
-`hardware/interfaces` fence-leak patch, the `system/core` early-suspend
-patch, `bionic/0001` (SDK version override from a property), the telephony
-patch, the three `frameworks/native` patches and the two `system/netd`
-patches. Not applying: `bionic/0002` (pre-P mutex behavior) — not needed,
-LineageOS bionic already bypasses the destroyed-mutex check for pre-P target
-SDKs.
-
-To adopt: early suspend, HWC2On1Adapter fence leak, `0001-Disable-vndk-for-omx`,
-`bionic/0001`, the telephony patch, `frameworks/native` 0002
-(`presentOrValidate`) and 0003 (gralloc usage bits), both netd patches
-(`CONFIG_IP_NF_MATCH_RPFILTER` is not set in the L861 kernel either), and the
-`frameworks/base` bitmap and `ged` ones once checked. To evaluate on the device: the
-video ones (YUV profiles, HEVC, crop info, MTK profiles) — the L861 OMX blobs
-are different builds. Not to adopt: `0003-MTK-camera-support` (this tree does
-the same through the device library `libcamera_client_mtk`) and the
-signature-spoofing part of `frameworks/base/0010`.
+Still open in `hal/libril`: its sources share their origin with the hermes
+libril, which differs by 244 lines in `ril_service.cpp` and 112 in `ril.cpp`;
+those differences have not been reviewed, so whether this libril compiles
+against the Pie radio HIDL is unknown.
 
 ## Verified against the lineage-16.0 sources
 
@@ -186,10 +182,10 @@ signatures (`DisplayColorCalibration`, `HighTouchSensitivity`, `KeyDisabler`,
 BoardConfig sets `JAVA_SOURCE_OVERLAYS` with the glob `src/**/*.java`.
 `UniqueDeviceId`, `PersistentStorage` and `util/FileUtils` have no 16.0
 counterpart; they stay in the old location, outside the glob, unused.
-Not verified: `DisplayColorCalibration` uses
-`com.android.server.display.DisplayTransformManager`
-(`LEVEL_COLOR_MATRIX_NIGHT_DISPLAY`) from frameworks/base, which is not
-cloned; if that API changed in Pie this one class will fail to compile.
+`DisplayColorCalibration` uses
+`com.android.server.display.DisplayTransformManager` from frameworks/base;
+checked against Pie: the class, `LEVEL_COLOR_MATRIX_NIGHT_DISPLAY` and
+`setColorMatrix(int, float[])` are all still there.
 
 ### Camera
 The only legacy-camera switch left in 16.0 is `TARGET_HAS_LEGACY_CAMERA_HAL1`,
@@ -222,8 +218,14 @@ the generic `CameraParameters.cpp`.
 1. **sepolicy**: compile against P base policy — expect new neverallow hits
    (use the commented `SELINUX_IGNORE_NEVERALLOWS` + permissive cmdline in
    BoardConfig for first boots, then fix denials properly).
-2. **Overlays**: audit `overlay/` and `overlay-lineage/` against P resource
-   renames (aapt will error on removed/renamed resources — fix as they appear).
+2. **Overlays**: the `frameworks/base` overlays were checked against the Pie
+   resources: 52 of 56 entries still exist. Four are gone
+   (`config_dozeAfterScreenOff`, `config_wifi_wakeup_available`,
+   `config_ignoreRssnrSignalLevel`, SystemUI `doze_pulse_on_pick_up`) and the
+   `packages/Keyguard` overlay has no target; the build passes
+   `--auto-add-overlay`, so these are dead entries, not errors. The overlays
+   for Settings, Dialer, Bluetooth, Snap, Telephony and lineage-sdk are not
+   checked (projects not cloned).
 3. **Shims** (`TARGET_LD_SHIM_LIBS` / `libmtk_symbols`): expect new unresolved
    symbols from P `libgui`/`libui`/`libstagefright`; extend the shim as
    runtime linker errors show up in logcat.
