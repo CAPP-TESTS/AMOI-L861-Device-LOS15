@@ -52,6 +52,25 @@ Offline charging now runs through `health@2.0-service` + `charger`. The sysfs
 paths in BoardConfig (`CHARGING_ENABLED_PATH`, LED paths, …) still apply. If
 charge mode misbehaves, a small `libhealthd.mt6795` (BoardHook) may be needed.
 
+### Partition layout: FuelOS only
+The tree now targets the FuelOS partition layout only (scatter
+`MT6795_Android_scatter_MARK1`, project `ef1682d`); the older compromise
+sizes that also fitted the FlyME layout are gone.
+
+| Partition | Scatter size | `BoardConfig.mk` |
+|---|---|---|
+| boot / recovery | 0x1000000 | 16777216 (unchanged) |
+| system | 0xda000000 | 3657433088 (was 1887436800) |
+| cache | 0x1a800000 | 444596224 (was 838860800) |
+| userdata | 0x64bb80000 | 27040137216 = partition minus 16384 for the crypto footer (was 28415885312) |
+
+The FuelOS layout has no `metadata` partition, so the encryption key
+location in `fstab.mt6795` and `twrp.fstab` moved from
+`by-name/metadata` to `encryptable=footer`; the meaningless `encryptable=`
+flag on `/cache` was dropped. An existing `/data` formatted to the full
+partition size has no room for the footer: encryption needs `/data` to be
+formatted once (TWRP already formats with `length=-16384`).
+
 ## patches/ — re-port status for 16.0
 
 The 15.1 patch set applies to 15.1 sources and **will not apply as-is** to
