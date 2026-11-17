@@ -92,7 +92,7 @@ lineage-16.0. Per-patch plan:
 | `system/core/0001-liblog-Add-__xlog_buf_printf.patch` | **Re-port** (liblog restructured in P). |
 | `system/core/0001-restore-support-for-early_suspend.patch` | **Re-port** — still needed with the 3.10 kernel's legacy suspend path. |
 | `system/core/0002-gatekeeperd-Add-use-software-gatekeeper-option.patch` | **Re-port** (software gatekeeper still needed). |
-| `system/core/0003-O-change-patch.patch` | **Drop** — Oreo-specific. |
+| `system/core/0003-O-change-patch.patch` | **Not droppable as first assumed.** Besides enlarging init's `ENV[]`, it adds the MTK `ifc_*` helpers to libnetutils (`ifc_set_txq_state`, `ifc_ccmni_md_cfg`, `ifc_set_throttle`, …) that the MTK RIL uses. The hermes lineage-16.0 tree avoids patching system/core by carrying `ifc_set_txq_state`/`ifc_ccmni_md_cfg` in `mtk/ril/libril/libnetutils.c`; do the same in `hal/libril`, or re-port the libnetutils part. |
 
 Good patch donors: any maintained legacy-MTK lineage-16.0 bringup
 (MT6795 `hermes`/Redmi Note 2 trees, and the common mt6735/mt6753 16.0 trees
