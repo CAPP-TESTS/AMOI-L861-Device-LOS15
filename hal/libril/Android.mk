@@ -37,13 +37,17 @@ ril_shared_libs := \
     android.hardware.radio.deprecated@1.0 \
 
 
-ifeq ($(BOARD_USES_MTK_HARDWARE), true)
-ril_shared_libs += \
-    vendor.mediatek.hardware.radio@1.1 \
-    vendor.mediatek.hardware.radio@2.0 \
-    vendor.mediatek.hardware.radio.deprecated@1.1
-
-endif
+# The vendor.mediatek.hardware.radio@* HIDL libraries were linked here on
+# 15.1, but nothing in libril includes or uses them and no module with
+# those names is defined in the device, vendor or kernel trees, so they are
+# only a missing-dependency build error waiting to happen (the hermes
+# lineage-16.0 libril, same sources, has them commented out too).
+#ifeq ($(BOARD_USES_MTK_HARDWARE), true)
+#ril_shared_libs += \
+#    vendor.mediatek.hardware.radio@1.1 \
+#    vendor.mediatek.hardware.radio@2.0 \
+#    vendor.mediatek.hardware.radio.deprecated@1.1
+#endif
 
 ril_inc := external/nanopb-c \
     $(LOCAL_PATH)/../include

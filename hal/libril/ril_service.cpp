@@ -529,7 +529,15 @@ bool copyHidlStringToRil(char **dest, const hidl_string &src, RequestInfo *pRI) 
 	sendErrorResponse(pRI, RIL_E_NO_MEMORY);
 	return false;
     }
-    strncpy(*dest, src.c_str(), len + 1);
+    if (strlcpy(*dest, src.c_str(), len + 1) >= (len + 1)) {
+        RLOGE("Copy of the HIDL string has been truncated, as "
+              "the string length reported by size() does not "
+              "match the length of string returned by c_str().");
+        free(*dest);
+        *dest = NULL;
+        sendErrorResponse(pRI, RIL_E_INTERNAL_ERR);
+        return false;
+    }
     return true;
 }
 
@@ -2707,7 +2715,7 @@ Return<void> RadioImpl::setRadioCapability(int32_t serial, const RadioCapability
     rilRc.phase = (int) rc.phase;
     rilRc.rat = (int) rc.raf;
     rilRc.status = (int) rc.status;
-    strncpy(rilRc.logicalModemUuid, rc.logicalModemUuid.c_str(), MAX_UUID_LENGTH);
+    strlcpy(rilRc.logicalModemUuid, rc.logicalModemUuid.c_str(), sizeof(rilRc.logicalModemUuid));
 
     android::my_enqueue(pRI->pCI->requestNumber, &rilRc, sizeof(rilRc), android::FMT_RAW, pRI);
 
@@ -3905,14 +3913,14 @@ int radio::getOperatorResponse(int slotId,
 //	    numeric = convertCharPtrToHidlString(resp[2]);
 	    char *p = (char*)getname(atoi(resp[0]));
 	    if (p == NULL) {
-		longName == numeric;
+		longName = numeric;
 		shortName = numeric;
 	    } else {
 		longName = convertCharPtrToHidlString(p);
 	        if (strlen(p) > 24)
-		    shortName == numeric;
+		    shortName = numeric;
 		else
-		    shortName == longName;
+		    shortName = longName;
 	    }
 #else
 	    longName = convertCharPtrToHidlString(resp[0]);
@@ -8427,6 +8435,11 @@ void radio::registerService(RIL_RadioFunctions *callbacks, CommandInfo *commands
     simCount = SIM_COUNT;
     #endif
 
+    // Set before the services are registered: a request can arrive as
+    // soon as registerAsService() returns (same order as hardware/ril 16.0).
+    s_vendorFunctions = callbacks;
+    s_commands = commands;
+
     configureRpcThreadpool(1, true /* callerWillJoin */);
     for (int i = 0; i < simCount; i++) {
 	pthread_rwlock_t *radioServiceRwlockPtr = getRadioServiceRwlock(i);
@@ -8445,9 +8458,6 @@ void radio::registerService(RIL_RadioFunctions *callbacks, CommandInfo *commands
 	ret = pthread_rwlock_unlock(radioServiceRwlockPtr);
 	assert(ret == 0);
     }
-
-    s_vendorFunctions = callbacks;
-    s_commands = commands;
 }
 
 void rilc_thread_pool() {

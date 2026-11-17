@@ -126,10 +126,41 @@ patches (its own install script does not apply them; one does not apply to
 16.0 because LineageOS bionic already has that behavior, the other reads a
 phh-specific property).
 
-Still open in `hal/libril`: its sources share their origin with the hermes
-libril, which differs by 244 lines in `ril_service.cpp` and 112 in `ril.cpp`;
-those differences have not been reviewed, so whether this libril compiles
-against the Pie radio HIDL is unknown.
+### hal/libril and hal/rild compared with hermes and with hardware/ril 16.0
+
+No Pie port is needed. The upstream lineage-16.0 libril still speaks only
+`android.hardware.radio@1.0`/`@1.1`, like this one, and the 15.1 → 16.0
+upstream changes are internal (const-correctness, NITZ locking, an OEM-hook
+switch, MNC digit handling); they do not change what the framework or the
+MTK RIL blob see. The hermes lineage-16.0 tree builds the same sources:
+`include/telephony/ril.h` and the prebuilt `rild-prop-md1.a` are
+byte-identical to the ones here, 15 of 20 libril files are identical, and
+`rild.c` differs in 23 lines once whitespace is ignored (const qualifiers,
+comments, a property name that only applies to Treble builds).
+
+The 244 + 112 differing lines in `ril_service.cpp`/`ril.cpp` are not Pie
+adaptations but hermes's own changes. Ported, because they are plain fixes:
+- `getOperatorResponse`: three `==` typed where `=` was meant, so the short
+  operator name was never set.
+- `copyHidlStringToRil` and the radio-capability UUID copy use `strlcpy`;
+  on truncation the buffer is freed and an error response is sent.
+- `registerService` stores the vendor callbacks before the services are
+  registered instead of after (the order hardware/ril 16.0 uses).
+- `sap_service.cpp`: NULL check on the decoded message (also in
+  hardware/ril 16.0).
+
+Not ported, because they change behavior and are hermes's own choices:
+relaxed response-length checks (`!= sizeof(int)` → `% sizeof(int) != 0`,
+`!= 2` → `< 2`; upstream 16.0 keeps the strict ones), the reworked IMEI /
+device-identity handling, the single-dialog USSD hack, the one-time modem
+reset when the second SIM slot connects, and the disabled
+`RIL_UNSOL_STK_CC_ALPHA_NOTIFY`. hermes also hard-codes two SIMs, while this
+tree sets `SIM_COUNT := 1`.
+
+`hal/libril/Android.mk` no longer links `vendor.mediatek.hardware.radio@1.1`,
+`@2.0` and `.deprecated@1.1`: nothing in libril uses them and no module with
+those names exists in the device, vendor or kernel trees. `hidl.mk` still
+lists them in `PRODUCT_PACKAGES`.
 
 ## Verified against the lineage-16.0 sources
 
