@@ -5,12 +5,14 @@ DEVICE_PATH := device/openstone/L861
 # Still honored on lineage-16.0 (read by build/make and build/soong).
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
 
-# NOTE (16.0): several flags further down are no longer read by anything in
-# lineage-16.0 - BOARD_GLOBAL_CFLAGS/CPPFLAGS (so none of their -D defines
-# reach a compiler), BOARD_USES_MTK_HARDWARE, the TARGET_*CAMERA* legacy
-# flags except TARGET_SPECIFIC_CAMERA_PARAMETER_LIBRARY, and
-# BOARD_HARDWARE_CLASS. They are left in place for reference; see
-# "Verified against the lineage-16.0 sources" in PORTING-LOS16.md.
+# NOTE (16.0): several flags further down are no longer read by the
+# lineage-16.0 platform - BOARD_GLOBAL_CFLAGS/CPPFLAGS (and none of their -D
+# defines is referenced by 16.0 framework code anyway), the TARGET_*CAMERA*
+# legacy flags except TARGET_SPECIFIC_CAMERA_PARAMETER_LIBRARY, and
+# BOARD_HARDWARE_CLASS. BOARD_USES_MTK_HARDWARE, BOARD_HAS_MTK_HARDWARE,
+# BOARD_PROVIDES_RILD and USE_MTK_CAMERA_WRAPPER are still needed: this
+# tree's own makefiles read them. See "Verified against the lineage-16.0
+# sources" in PORTING-LOS16.md.
 TARGET_BOARD_KERNEL_HEADERS := $(DEVICE_PATH)/kernel-headers
 
 MTK_K64_SUPPORT := yes
@@ -219,7 +221,11 @@ BUILD_WITH_ALSA_UTILS := true
 
 # RIL
 SIM_COUNT := 1
+# BOARD_PROVIDES_RILD only guards this tree's hal/rild; in lineage-16.0 the
+# platform rild is switched off with ENABLE_VENDOR_RIL_SERVICE (hardware/ril
+# rild/Android.mk), otherwise two "rild" modules would be defined.
 BOARD_PROVIDES_RILD := true
+ENABLE_VENDOR_RIL_SERVICE := true
 BOARD_PROVIDES_LIBRIL := true
 #MTK_MUX_CHANNEL := 64
 
@@ -239,8 +245,12 @@ TARGET_USES_COLOR_METADATA := false
 
 
 # LineageHW
+# lineage-16.0 no longer reads BOARD_HARDWARE_CLASS: device classes replace
+# the ones in hardware/lineage/lineagehw through JAVA_SOURCE_OVERLAYS, and
+# must mirror that module's layout (src/org/lineageos/hardware/...).
 BOARD_USES_LINEAGE_HARDWARE := true
 BOARD_HARDWARE_CLASS := $(DEVICE_PATH)/lineagehw
+JAVA_SOURCE_OVERLAYS := org.lineageos.hardware|$(DEVICE_PATH)/lineagehw|src/**/*.java
 #TARGET_TAP_TO_WAKE_NODE := "/sys/bus/i2c/devices/i2c-2/2-004b/wake_gesture_enable"
 TARGET_TAP_TO_WAKE_NODE := /proc/gt9xx_gesture
 

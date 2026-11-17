@@ -89,10 +89,11 @@ formatted once (TWRP already formats with `length=-16384`).
 
 ## patches/ — status against the real lineage-16.0 sources
 
-Checked with `git apply --check` against LineageOS `frameworks/av`,
-`hardware/interfaces` and `system/core` (branch `lineage-16.0`). The other
-target projects (bionic, frameworks/opt/telephony, hardware/ril) are not
-verified yet.
+Checked with `git apply` against the LineageOS `lineage-16.0` branches of
+`frameworks/av`, `hardware/interfaces`, `system/core`, `bionic`,
+`frameworks/opt/telephony`, `frameworks/native`, `system/netd` and
+`hardware/ril`. Not checked: the `frameworks/base` and `packages/apps/FMRadio`
+patches (those projects are not cloned).
 
 ### L861 15.1 patches
 
@@ -109,20 +110,26 @@ verified yet.
 | `system/core/0001-restore-support-for-early_suspend.patch` | no | replace with hermes `0001-libsuspend-readd-earlysuspend.patch` (applies) |
 | `system/core/0002-gatekeeperd-Add-use-software-gatekeeper-option.patch` | **yes** | keep |
 | `system/core/0003-O-change-patch.patch` | no | **not droppable**: besides enlarging init's `ENV[]` it adds the MTK `ifc_*` helpers to libnetutils that the MTK RIL uses. hermes carries `ifc_set_txq_state`/`ifc_ccmni_md_cfg` in `mtk/ril/libril/libnetutils.c` instead of patching system/core; do the same in `hal/libril`, or re-port the libnetutils part |
-| `bionic/0001-bionic-mtk-patch.patch` | not checked | exports `__pthread_gettid`; hermes solves this class of problem with shims |
-| `frameworks/opt/telephony/0001-RIL.java-…` | not checked | the hermes Pie patch adds the very same 50 lines; use that one |
-| `hardware/ril/0001-BOARD_PROVIDES_RILD.patch` | not checked | hermes has no such patch and only sets `BOARD_PROVIDES_LIBRIL` |
+| `bionic/0001-bionic-mtk-patch.patch` | **yes** | keep (exports `__pthread_gettid` with the versions the blobs expect) |
+| `frameworks/opt/telephony/0001-RIL.java-…` | no (`RIL.java:4761`) | replace with hermes `0001-add-mtk-ril-requests-unsol-responses.patch`: same 50 added lines, and it applies |
+| `hardware/ril/0001-BOARD_PROVIDES_RILD.patch` | no | **drop**: 16.0 switches the platform rild off with `ENABLE_VENDOR_RIL_SERVICE` and libril with `BOARD_PROVIDES_LIBRIL`; both are now set in BoardConfig |
 
 ### hermes lineage-16.0 patches
 
 All seven `frameworks/av` patches apply, also in sequence, and the six
-non-camera ones apply without `0003-MTK-camera-support`. The
-`hardware/interfaces` fence-leak patch and the `system/core` early-suspend
-patch apply too.
+non-camera ones apply without `0003-MTK-camera-support`. Also applying: the
+`hardware/interfaces` fence-leak patch, the `system/core` early-suspend
+patch, `bionic/0001` (SDK version override from a property), the telephony
+patch, the three `frameworks/native` patches and the two `system/netd`
+patches. Not applying: `bionic/0002` (pre-P mutex behavior) — not needed,
+LineageOS bionic already bypasses the destroyed-mutex check for pre-P target
+SDKs.
 
 To adopt: early suspend, HWC2On1Adapter fence leak, `0001-Disable-vndk-for-omx`,
-and (not yet apply-checked, their projects are not cloned) the bionic, netd,
-frameworks/native and frameworks/base ones. To evaluate on the device: the
+`bionic/0001`, the telephony patch, `frameworks/native` 0002
+(`presentOrValidate`) and 0003 (gralloc usage bits), both netd patches
+(`CONFIG_IP_NF_MATCH_RPFILTER` is not set in the L861 kernel either), and the
+`frameworks/base` bitmap and `ged` ones once checked. To evaluate on the device: the
 video ones (YUV profiles, HEVC, crop info, MTK profiles) — the L861 OMX blobs
 are different builds. Not to adopt: `0003-MTK-camera-support` (this tree does
 the same through the device library `libcamera_client_mtk`) and the
@@ -142,10 +149,16 @@ vendor/lineage, frameworks/av, hardware/interfaces or system/core reads:
 - `BOARD_GLOBAL_CFLAGS` / `BOARD_GLOBAL_CPPFLAGS` — so `-DMTK_HARDWARE`,
   `-DCOMPAT_SENSORS_M`, `-DNO_SENSOR_PERMISSION_CHECK`,
   `-DDISABLE_HW_ID_MATCH_CHECK`, `-DADD_LEGACY_ACQUIRE_BUFFER_SYMBOL`,
-  `-DDISABLE_ASHMEM_TRACKING`, … reach no compiler. Any behavior that depended
-  on them must come from a patch or from the module's own flags.
-- `BOARD_USES_MTK_HARDWARE` / `BOARD_HAS_MTK_HARDWARE` (no `uses_mtk_hardware`
-  soong variable).
+  `-DDISABLE_ASHMEM_TRACKING`, … reach no compiler. It would not matter if
+  they did: none of these defines is referenced anywhere in 16.0
+  frameworks/native, frameworks/av, bionic, system/core or
+  hardware/interfaces. Whatever they switched on in 15.1 (sensor
+  compatibility in particular) has no 16.0 counterpart and must come from a
+  patch if it turns out to be needed.
+- `BOARD_USES_MTK_HARDWARE` / `BOARD_HAS_MTK_HARDWARE` on the platform side
+  (no `uses_mtk_hardware` soong variable). They stay set: this tree's own
+  `hal/libril` and `hal/libcamera_client_mtk` makefiles read them, like
+  `BOARD_PROVIDES_RILD` (`hal/rild`) and `USE_MTK_CAMERA_WRAPPER`.
 - the camera flags `TARGET_USES_NON_TREBLE_CAMERA`,
   `TARGET_NEEDS_LEGACY_CAMERA_HAL1_DYN_NATIVE_HANDLE`,
   `TARGET_CAMERASERVICE_CLOSES_NATIVE_HANDLES`, `TARGET_USE_COMPAT_GRALLOC_ALIGN`,
@@ -154,12 +167,29 @@ vendor/lineage, frameworks/av, hardware/interfaces or system/core reads:
   relocations), `TARGET_NO_SENSOR_PERMISSION_CHECK`,
   `TARGET_CPU_MEMCPY_OPT_DISABLE`, `BOARD_USE_SOFT_GATEKEEPER` (only the
   re-ported gatekeeperd patch would read it).
-- `BOARD_USES_LINEAGE_HARDWARE` / `BOARD_HARDWARE_CLASS`: 16.0 wires lineagehw
-  Java classes through `JAVA_SOURCE_OVERLAYS`. Not confirmed yet
-  (hardware/lineage is not cloned): until then `lineagehw/` may be ignored.
+- `BOARD_USES_LINEAGE_HARDWARE` / `BOARD_HARDWARE_CLASS`: see lineagehw below.
 
-`BOARD_PROVIDES_LIBRIL`/`BOARD_PROVIDES_RILD` live in hardware/ril, not
-checked yet.
+### RIL
+hardware/ril 16.0 reads `BOARD_PROVIDES_LIBRIL` (libril) and
+`ENABLE_VENDOR_RIL_SERVICE` (rild), not `BOARD_PROVIDES_RILD`. Without
+`ENABLE_VENDOR_RIL_SERVICE := true` the platform rild and this tree's
+`hal/rild` would both define a `rild` module. Now set in BoardConfig.
+
+### lineagehw
+16.0 replaces classes of `hardware/lineage/lineagehw` through
+`JAVA_SOURCE_OVERLAYS` (`<module>|<dir>|<glob>`), matching files by their
+path inside the module (`src/org/lineageos/hardware/X.java`). The old layout
+(`lineagehw/org/lineageos/hardware/X.java` + `BOARD_HARDWARE_CLASS`) is
+ignored. The four classes that still exist in 16.0 and have identical public
+signatures (`DisplayColorCalibration`, `HighTouchSensitivity`, `KeyDisabler`,
+`VibratorHW`) moved to `lineagehw/src/org/lineageos/hardware/` and
+BoardConfig sets `JAVA_SOURCE_OVERLAYS` with the glob `src/**/*.java`.
+`UniqueDeviceId`, `PersistentStorage` and `util/FileUtils` have no 16.0
+counterpart; they stay in the old location, outside the glob, unused.
+Not verified: `DisplayColorCalibration` uses
+`com.android.server.display.DisplayTransformManager`
+(`LEVEL_COLOR_MATRIX_NIGHT_DISPLAY`) from frameworks/base, which is not
+cloned; if that API changed in Pie this one class will fail to compile.
 
 ### Camera
 The only legacy-camera switch left in 16.0 is `TARGET_HAS_LEGACY_CAMERA_HAL1`,
