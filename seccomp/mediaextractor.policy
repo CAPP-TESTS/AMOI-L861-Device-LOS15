@@ -10,8 +10,6 @@ nanosleep: 1
 readlinkat: 1
 pread64: 1
 mremap: 1
-# Pie (16.0): libc/ART call these on P; without them mediaextractor gets
-# killed by seccomp while probing files
-getrandom: 1
-sched_yield: 1
-clock_getres: 1
+# Pie (16.0): extra syscall the hermes lineage-16.0 tree (same SoC, MTK M
+# blobs) allows on top of the base policy and that was missing here
+setrlimit: 1

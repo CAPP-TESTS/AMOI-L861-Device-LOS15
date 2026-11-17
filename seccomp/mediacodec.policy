@@ -24,8 +24,9 @@ getdents64: 1
 getcwd: 1
 inotify_init1: 1
 inotify_add_watch: 1
-# Pie (16.0): libc/ART call these on P; without them mediacodec gets
-# killed by seccomp on first codec instantiation
-getrandom: 1
-sched_yield: 1
-clock_getres: 1
+# Pie (16.0): extra syscalls the hermes lineage-16.0 tree (same SoC, MTK M
+# blobs) allows on top of the base policy and that were missing here
+sched_getaffinity: 1
+setrlimit: 1
+setsockopt: 1
+tee: 1

@@ -120,9 +120,11 @@ PRODUCT_PACKAGES += \
     android.hardware.drm@1.0-service.widevine \
     android.hardware.drm@1.0-service
 
-# Health (health@1.0 is gone in Pie; healthd is replaced by health@2.0-service)
+# Health (health@1.0 is gone in Pie). The .override variant is the one that
+# replaces healthd (overrides: ["healthd"] in system/core/healthd/Android.bp);
+# the plain @2.0-service would be installed next to healthd.
 PRODUCT_PACKAGES += \
-    android.hardware.health@2.0-service
+    android.hardware.health@2.0-service.override
 
 # Fingerprint
 # PRODUCT_PACKAGES += \

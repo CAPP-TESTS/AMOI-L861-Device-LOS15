@@ -59,13 +59,10 @@ cc_library_static {
 
     //-----------------------------------------------------------
 
-    product_variables: {
-        lineage: {
-            uses_mtk_hardware: {
-             cppflags: ["-DMTK_HARDWARE"],
-            },
-        },
-    },
+    // lineage-16.0 has no "uses_mtk_hardware" soong variable any more (an
+    // unknown product_variables property is a hard soong error), and this
+    // device always is MTK hardware, so set the define unconditionally.
+    cppflags: ["-DMTK_HARDWARE"],
 
     //
 

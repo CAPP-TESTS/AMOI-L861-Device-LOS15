@@ -2,10 +2,15 @@
 
 DEVICE_PATH := device/openstone/L861
 
-# TODO(16.0): TARGET_SPECIFIC_HEADER_PATH is on its way out in newer build
-# systems; verify it is still honored on lineage-16.0 and if not, move the
-# headers into the modules that need them (header_libs / LOCAL_C_INCLUDES).
+# Still honored on lineage-16.0 (read by build/make and build/soong).
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
+
+# NOTE (16.0): several flags further down are no longer read by anything in
+# lineage-16.0 - BOARD_GLOBAL_CFLAGS/CPPFLAGS (so none of their -D defines
+# reach a compiler), BOARD_USES_MTK_HARDWARE, the TARGET_*CAMERA* legacy
+# flags except TARGET_SPECIFIC_CAMERA_PARAMETER_LIBRARY, and
+# BOARD_HARDWARE_CLASS. They are left in place for reference; see
+# "Verified against the lineage-16.0 sources" in PORTING-LOS16.md.
 TARGET_BOARD_KERNEL_HEADERS := $(DEVICE_PATH)/kernel-headers
 
 MTK_K64_SUPPORT := yes
